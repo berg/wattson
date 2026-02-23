@@ -1,0 +1,17 @@
+[package]
+name = "wattson"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28"
+serialport = "4"
+crossbeam-channel = "0.5"
+csv = "1"
+clap = { version = "4", features = ["derive"] }
+chrono = "0.4"
+anyhow = "1"
+
+[dev-dependencies]
+assert_approx_eq = "1"

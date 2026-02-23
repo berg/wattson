@@ -1,0 +1,8 @@
+# Rust
+target/
+
+# OS
+.DS_Store
+
+# CSV logs
+wattson_*.csv
