@@ -20,7 +20,16 @@ Supported models:
 
 v2 revisions of the 3GS, 9G, and 20GS are also supported (model IDs 104--106).
 
-## Building
+## Installation
+
+### Homebrew (macOS and Linux)
+
+```
+brew tap berg/wattson
+brew install wattson
+```
+
+### Build from source
 
 Requires Rust (edition 2021).
 
