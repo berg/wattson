@@ -33,16 +33,17 @@ The binary lands in `target/release/wattson`.
 ## Usage
 
 ```
-wattson --port <SERIAL_PORT> [--freq <MHz>] [--rate <0-3>] [--offset <dB>]
+wattson [--port <SERIAL_PORT>] [--freq <MHz>] [--rate <0-3>] [--offset <dB>] [--mini]
 ```
 
 **Arguments:**
 
-- `--port` / `-p` (required) -- Serial port path, e.g. `/dev/ttyUSB0` or `/dev/tty.usbserial-1130`
+- `--port` / `-p` -- Serial port path, e.g. `/dev/ttyUSB0` or `/dev/tty.usbserial-1130`. If omitted, wattson auto-detects the device by USB VID/PID (VID `1a86`, PID `7523` — the CH340 chip used by this meter).
 - `--freq` / `-f` -- Initial frequency in MHz (default: 10.0)
 - `--rate` / `-r` -- Sampling rate index (default: 2)
   - `0` = 10 Hz, `1` = 40 Hz, `2` = 640 Hz, `3` = 1280 Hz
 - `--offset` / `-o` -- Power offset in dB (default: 0.0)
+- `--mini` / `-m` -- Minimal mode: print readings to a single line in the current terminal without taking over the screen (no TUI, no alternate screen). Useful for quick checks or piping into other tools. Press Ctrl+C to exit.
 
 On startup, wattson queries the device for its model and firmware version, sets the sampling rate, then loads the full calibration table from the device. A progress bar shows during calibration loading. Once complete, the live waveform view starts.
 
