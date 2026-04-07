@@ -37,11 +37,15 @@ rm -f Cargo.toml.bak
 # Regenerate Cargo.lock
 cargo check --quiet
 
-# Commit, tag, push
+# Commit only if anything changed (version may already be set)
 git add Cargo.toml Cargo.lock
-git commit -m "Release v${VERSION}"
+if ! git diff --cached --quiet; then
+    git commit -m "Release v${VERSION}"
+    git push origin main
+fi
+
 git tag "v${VERSION}"
-git push origin main "v${VERSION}"
+git push origin "v${VERSION}"
 
 echo ""
 echo "v${VERSION} tagged and pushed. GitHub Actions will build and publish the release."
