@@ -1,6 +1,23 @@
 use std::io::Read;
 use std::time::{Duration, Instant};
 
+const DEVICE_VID: u16 = 0x1a86;
+const DEVICE_PID: u16 = 0x7523;
+
+/// Find the serial port for the RF power meter by USB VID/PID.
+/// Returns the port name if found, or None.
+pub fn find_device_port() -> Option<String> {
+    let ports = serialport::available_ports().ok()?;
+    ports.into_iter().find_map(|p| {
+        if let serialport::SerialPortType::UsbPort(info) = p.port_type {
+            if info.vid == DEVICE_VID && info.pid == DEVICE_PID {
+                return Some(p.port_name);
+            }
+        }
+        None
+    })
+}
+
 use crate::model::{adc_to_voltage, DeviceCalibration, ModelSpec};
 use crate::protocol::{
     build_query_id, build_read_calibration, build_set_config, Frame, FrameParser, SamplingRate,

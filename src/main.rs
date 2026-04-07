@@ -21,9 +21,9 @@ use wattson::ui;
 #[derive(Parser)]
 #[command(name = "wattson", about = "RF Power Meter TUI")]
 struct Cli {
-    /// Serial port (e.g., /dev/ttyUSB0 or /dev/tty.usbserial-XXX)
+    /// Serial port (e.g., /dev/ttyUSB0 or /dev/tty.usbserial-XXX); auto-detected if omitted
     #[arg(short, long)]
-    port: String,
+    port: Option<String>,
 
     /// Initial frequency in MHz
     #[arg(short, long, default_value = "10.0")]
@@ -56,33 +56,49 @@ fn main() -> Result<()> {
 
     let initial_rate = SamplingRate::from_index(cli.rate).unwrap_or(SamplingRate::Hz640);
 
-    // Validate serial port before starting TUI
-    match serialport::available_ports() {
-        Ok(ports) => {
-            if !ports.iter().any(|p| p.port_name == cli.port) {
-                eprintln!("Error: serial port '{}' not found.", cli.port);
-                eprintln!();
-                eprintln!("Available ports:");
-                for p in &ports {
-                    eprintln!("  {}", p.port_name);
+    // Resolve serial port: explicit arg or auto-detect by USB VID/PID
+    let port_name = match cli.port {
+        Some(p) => {
+            // Validate the explicitly specified port exists
+            match serialport::available_ports() {
+                Ok(ports) => {
+                    if !ports.iter().any(|info| info.port_name == p) {
+                        eprintln!("Error: serial port '{}' not found.", p);
+                        eprintln!();
+                        eprintln!("Available ports:");
+                        for info in &ports {
+                            eprintln!("  {}", info.port_name);
+                        }
+                        if ports.is_empty() {
+                            eprintln!("  (none found)");
+                        }
+                        std::process::exit(1);
+                    }
                 }
-                if ports.is_empty() {
-                    eprintln!("  (none found)");
+                Err(_) => {} // Can't enumerate, proceed anyway
+            }
+            p
+        }
+        None => {
+            match wattson::device::find_device_port() {
+                Some(p) => {
+                    eprintln!("Auto-detected device on {}", p);
+                    p
                 }
-                std::process::exit(1);
+                None => {
+                    eprintln!("Error: no RF power meter found (USB VID=1a86, PID=7523).");
+                    eprintln!("Connect the device or specify a port with --port.");
+                    std::process::exit(1);
+                }
             }
         }
-        Err(_) => {
-            // Can't enumerate, proceed anyway
-        }
-    }
+    };
 
     // Set up channels
     let (event_tx, event_rx) = crossbeam_channel::unbounded::<DeviceEvent>();
     let (cmd_tx, cmd_rx) = crossbeam_channel::unbounded::<DeviceCommand>();
 
     // Spawn serial thread
-    let port_name = cli.port.clone();
     let freq_mhz = cli.freq;
     let serial_handle = thread::spawn(move || {
         if let Err(e) = wattson::device::run_serial_thread(
