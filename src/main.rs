@@ -36,6 +36,10 @@ struct Cli {
     /// Power offset in dB
     #[arg(short, long, default_value = "0.0")]
     offset: f64,
+
+    /// Minimal mode: print readings to stdout without taking over the terminal
+    #[arg(short, long)]
+    mini: bool,
 }
 
 /// Which kind of text input is active
@@ -111,6 +115,36 @@ fn main() -> Result<()> {
             eprintln!("Serial thread error: {}", e);
         }
     });
+
+    // Mini mode: plain stdout, no TUI
+    if cli.mini {
+        let offset = cli.offset;
+        let mut connected = false;
+        for dev_event in &event_rx {
+            match dev_event {
+                DeviceEvent::Connected { model_name, .. } => {
+                    eprintln!("Connected: {}", model_name);
+                }
+                DeviceEvent::Ready => {
+                    connected = true;
+                }
+                DeviceEvent::PowerReading(dbm) if connected => {
+                    let dbm = dbm + offset;
+                    let (linear_val, linear_unit) = wattson::state::format_linear_power(dbm);
+                    print!("\r{:>8.3} dBm  ({:.3} {})   ", dbm, linear_val, linear_unit);
+                    let _ = <io::Stdout as io::Write>::flush(&mut io::stdout());
+                }
+                DeviceEvent::Disconnected => {
+                    println!();
+                    break;
+                }
+                _ => {}
+            }
+        }
+        let _ = cmd_tx.send(DeviceCommand::Disconnect);
+        let _ = serial_handle.join();
+        return Ok(());
+    }
 
     // Set up terminal
     enable_raw_mode()?;
